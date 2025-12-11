@@ -1,0 +1,39 @@
+<view class="container">
+  <!-- Hidden Canvas for Image Processing -->
+  <canvas type="2d" id="processCanvas" style="position:fixed; left:100%; width: 1024px; height: 1024px;"></canvas>
+
+  <view class="header">
+    <text class="title">萌宠变身工坊</text>
+    <text class="subtitle">上传照片，一键变身表情包！</text>
+  </view>
+
+  <!-- UI Area 1: Display -->
+  <view class="image-container">
+    <image class="preview-image" src="{{displayImage}}" mode="aspectFit" wx:if="{{displayImage}}"></image>
+    <view class="placeholder" wx:else>
+      <text>请上传宠物照片</text>
+    </view>
+  </view>
+
+  <!-- UI Area 2: Operations -->
+  <view class="controls">
+    <button class="btn upload-btn" bindtap="chooseImage">📸 上传照片</button>
+
+    <view class="style-selector">
+      <text class="section-title">选择风格：</text>
+      <radio-group class="radio-group" bindchange="onStyleChange">
+        <label class="radio" wx:for="{{styles}}" wx:key="value">
+          <radio value="{{item.value}}" checked="{{item.checked}}"/>{{item.name}}
+        </label>
+      </radio-group>
+    </view>
+
+    <button class="btn generate-btn" bindtap="generateMeme" disabled="{{!processedImage}}">✨ 生成表情包</button>
+  </view>
+
+  <!-- UI Area 3: Save -->
+  <view class="result-actions" wx:if="{{generatedImage}}">
+     <image class="result-image" src="{{generatedImage}}" mode="aspectFit" bindtap="previewResult"></image>
+     <button class="btn save-btn" bindtap="saveImage">💾 保存到相册</button>
+  </view>
+</view>

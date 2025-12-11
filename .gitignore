@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Environment Variables
+.env
+
+# System Files
+.DS_Store
+
+# WeChat Mini Program Private Config
+project.private.config.json
+
+# Lock Files (Optional, ignoring to avoid conflicts as requested)
+package-lock.json
+yarn.lock
