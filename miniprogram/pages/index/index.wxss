@@ -46,7 +46,7 @@
   overflow: hidden;
 }
 
-/* Display Area */
+/* Hero Stage */
 .image-wrapper {
   width: 100%;
   aspect-ratio: 1; /* Square */
@@ -58,9 +58,16 @@
   align-items: center;
   position: relative;
   overflow: hidden;
+  transition: all 0.2s ease;
 }
 
-.preview-image {
+.image-wrapper.clickable:active {
+  transform: scale(0.98);
+  border-color: var(--accent-color);
+  background-color: #EBF8FF;
+}
+
+.hero-image {
   width: 100%;
   height: 100%;
 }
@@ -76,6 +83,39 @@
 .placeholder-icon {
   font-size: 80rpx;
 }
+
+.placeholder-text {
+  font-weight: bold;
+}
+
+/* Re-upload Hint Overlay */
+.reupload-hint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: white;
+  font-weight: bold;
+  font-size: 32rpx;
+}
+
+.image-wrapper.clickable:hover .reupload-hint,
+.image-wrapper.clickable:active .reupload-hint {
+  opacity: 1; /* Show specific hint on interaction if platform supports hover or just active */
+}
+
+/* Force hint visible on active press for touch devices */
+.image-wrapper.clickable:active .reupload-hint {
+  opacity: 1;
+}
+
 
 /* Loading Overlay */
 .loading-overlay {
@@ -124,7 +164,14 @@
 
 /* Controls */
 .style-selector {
-  margin: 32rpx 0;
+  margin-bottom: 32rpx;
+  transition: opacity 0.3s;
+}
+
+.style-selector.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  filter: grayscale(100%);
 }
 
 .section-title {
@@ -160,7 +207,13 @@
   transform: translateY(-2rpx);
 }
 
-/* Buttons */
+/* Buttons Area */
+.action-area {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
 .btn {
   width: 100%;
   border-radius: 999px;
@@ -180,11 +233,6 @@
   box-shadow: 0rpx 0rpx 0rpx #000;
 }
 
-.upload-btn {
-  background-color: white;
-  color: #1a202c;
-}
-
 .generate-btn {
   background-color: var(--accent-color);
   color: white;
@@ -198,27 +246,13 @@
   transform: none;
 }
 
-.result-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 32rpx;
-  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.result-image {
-  width: 400rpx;
-  height: 400rpx;
-  border-radius: var(--radius-md);
-  border: 4rpx solid #1a202c;
-}
-
 .save-btn {
   background-color: var(--secondary-accent); /* Hot Pink */
   color: white;
+  animation: filePop 0.3s ease-out;
 }
 
-@keyframes popIn {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
+@keyframes filePop {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }

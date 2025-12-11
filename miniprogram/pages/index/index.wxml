@@ -7,13 +7,15 @@
     <text class="subtitle">Z世代的宠物黑科技 ⚡️</text>
   </view>
 
-  <!-- Card 1: Display Area -->
-  <view class="card display-card">
-    <view class="image-wrapper">
-      <image class="preview-image" src="{{displayImage}}" mode="aspectFit" wx:if="{{displayImage}}"></image>
+  <!-- Hero Stage: Combined Display & Upload Trigger -->
+  <view class="card hero-stage-card">
+    <view class="image-wrapper {{!processedImage ? 'clickable' : ''}}" bindtap="onHeroTap">
+      <image class="hero-image" src="{{displayImage}}" mode="aspectFit" wx:if="{{displayImage}}"></image>
+      
+      <!-- Empty State Trigger -->
       <view class="placeholder" wx:else>
-        <text class="placeholder-icon">📸</text>
-        <text>上传主子萌照</text>
+        <text class="placeholder-icon">📷</text>
+        <text class="placeholder-text">点击上传主子美照</text>
       </view>
       
       <!-- Loading Overlay -->
@@ -23,59 +25,38 @@
           <text class="loading-text">{{loadingText}}</text>
         </view>
       </view>
+
+      <!-- Re-upload Hint (Optional, subtle overlay on image) -->
+      <view class="reupload-hint" wx:if="{{displayImage && !isLoading && !isGenerated}}">
+        <text>点击更换图片</text>
+      </view>
     </view>
   </view>
 
-  <!-- Card 2: Operations -->
+  <!-- Control Panel -->
   <view class="card control-card">
-    <button class="btn upload-btn" bindtap="chooseImage">
-      <text>📸 上传照片</text>
-    </button>
-
-    <view class="style-selector">
+    
+    <!-- Style Selector -->
+    <view class="style-selector {{!processedImage ? 'disabled' : ''}}">
       <text class="section-title">✨ 选择画风</text>
-      <view class="style-options">
-        <view 
-          class="style-item {{selectedStyle === item.value ? 'active' : ''}}" 
-          wx:for="{{styles}}" 
-          wx:key="value"
-          bindtap="onStyleTap" 
-          data-value="{{item.value}}"
-        >
-            <!-- Note: changing from radio to custom view for better styling -->
-            <!-- We need to update JS slightly to handle this tap or keep radio group but style it heavily. 
-                 Let's stick to radio-group for now to minimize JS changes, 
-                 OR use radio-group with hidden radios and custom labels. 
-                 Actually, the user said "Action: Please update ... don't change core logic".
-                 Changing UI interaction is updating UI. 
-                 I'll keep radio-group structure but style it better.
-            -->
-            <radio-group class="radio-group-hidden" bindchange="onStyleChange">
-                 <!-- Hidden real radios, we just use the loop above for visuals if we wanted complex buttons. 
-                      Simplest: Just enhance the existing radio-group.
-                 -->
-            </radio-group>
-      </view>
-       <!-- Reverting to standard radio group but with class hooks for styling -->
-       <radio-group class="style-radio-group" bindchange="onStyleChange">
+      <radio-group class="style-radio-group" bindchange="onStyleChange">
         <label class="style-option {{selectedStyle === item.value ? 'selected' : ''}}" wx:for="{{styles}}" wx:key="value">
           <radio value="{{item.value}}" checked="{{item.checked}}" hidden="true"/>
           <text class="style-name">{{item.name}}</text>
         </label>
-       </radio-group>
-    </view>
+      </radio-group>
     </view>
 
-    <button class="btn generate-btn" bindtap="generateMeme" disabled="{{!processedImage}}">
-      <text>🚀 一键生成</text>
-    </button>
+    <!-- Actions Area -->
+    <view class="action-area">
+      <button class="btn generate-btn" bindtap="generateMeme" disabled="{{!processedImage || isGenerated}}">
+        <text>{{isGenerated ? '✅ 生成完毕' : '🚀 一键生成'}}</text>
+      </button>
+
+      <button class="btn save-btn" bindtap="saveImage" wx:if="{{isGenerated}}">
+        <text>💾 保存到相册</text>
+      </button>
+    </view>
   </view>
 
-  <!-- Result Modal / Card -->
-  <view class="result-actions" wx:if="{{generatedImage}}">
-     <view class="card result-card">
-        <image class="result-image" src="{{generatedImage}}" mode="aspectFit" bindtap="previewResult"></image>
-        <button class="btn save-btn" bindtap="saveImage">💾 保存到相册</button>
-     </view>
-  </view>
 </view>

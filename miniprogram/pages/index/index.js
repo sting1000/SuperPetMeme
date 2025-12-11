@@ -1,8 +1,8 @@
 Page({
     data: {
-        displayImage: '',     // Path to display in UI (original aspect ratio)
-        processedImage: '',   // Base64 of the square image
-        generatedImage: '',   // Result from backend
+        displayImage: '',     // The Hero Image (can be original or result)
+        processedImage: '',   // Base64 of the square original image (for API)
+        isGenerated: false,   // State: true if showing result
         styles: [
             { name: '赛博朋克', value: 'cyberpunk', checked: true },
             { name: '3D 迪士尼', value: '3d-disney', checked: false },
@@ -21,6 +21,11 @@ Page({
         }
     },
 
+    onHeroTap() {
+        // Always trigger media selection to upload/replace
+        this.chooseImage();
+    },
+
     onStyleChange(e) {
         this.setData({
             selectedStyle: e.detail.value
@@ -35,10 +40,11 @@ Page({
             success: (res) => {
                 const tempFilePath = res.tempFiles[0].tempFilePath;
 
-                // 1. Display the image immediately
+                // 1. Display the image immediately AND Reset State
                 this.setData({
                     displayImage: tempFilePath,
-                    generatedImage: '' // Clear previous result
+                    isGenerated: false,   // Reset generated state
+                    processedImage: ''    // Clear old processed data until ready
                 });
 
                 // 2. Get Image Info to guide Canvas resizing
@@ -73,13 +79,7 @@ Page({
                 const canvas = res[0].node;
                 const ctx = canvas.getContext('2d');
 
-                // Determine the square size (max of width or height)
-                // We limit max size to 1024 to avoid memory issues and ensure performance
-                const maxSide = Math.max(imgW, imgH);
-                const targetSize = Math.max(1024, maxSide); // Ensure at least 1024 quality or native size
-
-                // Actually, let's fix it to 1024x1024 for consistency with typical API requirements 
-                // unless the image is smaller, but DALL-E likes 1024x1024.
+                // Standardize to 1024x1024
                 const size = 1024;
 
                 // Set canvas physical size
@@ -96,7 +96,6 @@ Page({
                     ctx.fillRect(0, 0, size, size);
 
                     // 2. Calculate Center Position
-                    // Scale image to fit within the 1024 format while maintaining aspect ratio
                     const scale = Math.min(size / imgW, size / imgH);
                     const drawW = imgW * scale;
                     const drawH = imgH * scale;
@@ -107,9 +106,7 @@ Page({
                     ctx.drawImage(image, x, y, drawW, drawH);
 
                     // 4. Export to Base64
-                    // wx.canvasToTempFilePath does not support direct base64 export easily in all contexts
-                    // specific to type="2d", we can use canvas.toDataURL() which is standard web API
-                    const base64 = canvas.toDataURL('image/png', 1.0); // Quality 1.0
+                    const base64 = canvas.toDataURL('image/png', 1.0);
 
                     this.setData({ processedImage: base64, isLoading: false });
                     wx.showToast({ title: '准备就绪', icon: 'success' });
@@ -129,7 +126,6 @@ Page({
             return;
         }
 
-        wx.showToast({ title: '魔法生成中...', icon: 'none' }); // Optional hint
         this.setData({ isLoading: true, loadingText: 'AI 正在疯狂绘图中...' });
 
         wx.request({
@@ -146,14 +142,13 @@ Page({
                 this.setData({ isLoading: false });
                 console.log('Backend response:', res.data);
 
-                // Check for DALL-E style response (URL) or custom Base64 response
                 let result = '';
                 if (res.data && res.data.data && res.data.data[0].url) {
                     result = res.data.data[0].url;
                 } else if (res.data && res.data.result) {
-                    result = res.data.result; // Fallback for other formats
+                    result = res.data.result;
                 } else if (typeof res.data === 'string') {
-                    result = res.data; // Raw string
+                    result = res.data;
                 }
 
                 if (!result) {
@@ -162,19 +157,21 @@ Page({
                     return;
                 }
 
-                // If it looks like Base64 (starts with data:image or is a long string without http)
+                // Handle Base64 or URL
                 if (result.startsWith('data:image') || !result.startsWith('http')) {
                     const fs = wx.getFileSystemManager();
-                    // Clean Base64 prefix
                     const base64Data = result.replace(/^data:image\/\w+;base64,/, "");
                     const filePath = wx.env.USER_DATA_PATH + '/result.png';
 
                     fs.writeFile({
                         filePath: filePath,
                         data: base64Data,
-                        encoding: 'base64', // Explicitly 'base64'
+                        encoding: 'base64',
                         success: () => {
-                            this.setData({ generatedImage: filePath });
+                            this.setData({
+                                displayImage: filePath, // Swap Hero Image
+                                isGenerated: true      // Mark as generated
+                            });
                         },
                         fail: (err) => {
                             console.error('Write file failed:', err);
@@ -182,8 +179,11 @@ Page({
                         }
                     });
                 } else {
-                    // It's a URL (e.g. from DALL-E)
-                    this.setData({ generatedImage: result });
+                    // It's a URL
+                    this.setData({
+                        displayImage: result, // Swap Hero Image
+                        isGenerated: true    // Mark as generated
+                    });
                 }
             },
             fail: (err) => {
@@ -194,18 +194,10 @@ Page({
         });
     },
 
-    previewResult() {
-        if (this.data.generatedImage) {
-            wx.previewImage({
-                urls: [this.data.generatedImage]
-            });
-        }
-    },
-
     saveImage() {
-        if (!this.data.generatedImage) return;
+        if (!this.data.isGenerated || !this.data.displayImage) return;
 
-        const filePath = this.data.generatedImage;
+        const filePath = this.data.displayImage;
 
         // If it's a remote URL, download it first, otherwise save directly
         if (filePath.startsWith('http')) {
@@ -220,13 +212,14 @@ Page({
                 }
             });
         } else {
-            // It is already a local file (from base64 write)
+            // It is already a local file
             wx.saveImageToPhotosAlbum({
                 filePath: filePath,
                 success: () => wx.showToast({ title: '保存成功', icon: 'success' }),
                 fail: (err) => {
                     console.error('Save failed', err);
                     wx.showToast({ title: '保存失败', icon: 'none' });
+                    // Usually this fails if permission denied or file not found
                 }
             });
         }
