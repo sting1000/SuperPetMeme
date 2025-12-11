@@ -8,7 +8,9 @@ Page({
             { name: '3D 迪士尼', value: '3d-disney', checked: false },
             { name: '油画', value: 'oil-painting', checked: false }
         ],
-        selectedStyle: 'cyberpunk'
+        selectedStyle: 'cyberpunk',
+        isLoading: false,
+        loadingText: '处理中...'
     },
 
     onLoad() {
@@ -55,7 +57,7 @@ Page({
     },
 
     processImageToSquare(path, imgW, imgH) {
-        wx.showLoading({ title: '处理中...', mask: true });
+        this.setData({ isLoading: true, loadingText: '正在给主子拍照...' });
 
         // Create SelectorQuery to get the canvas node
         const query = wx.createSelectorQuery();
@@ -63,7 +65,7 @@ Page({
             .fields({ node: true, size: true })
             .exec((res) => {
                 if (!res[0] || !res[0].node) {
-                    wx.hideLoading();
+                    this.setData({ isLoading: false });
                     wx.showToast({ title: 'Canvas 初始化失败', icon: 'none' });
                     return;
                 }
@@ -109,14 +111,13 @@ Page({
                     // specific to type="2d", we can use canvas.toDataURL() which is standard web API
                     const base64 = canvas.toDataURL('image/png', 1.0); // Quality 1.0
 
-                    this.setData({ processedImage: base64 });
-                    wx.hideLoading();
+                    this.setData({ processedImage: base64, isLoading: false });
                     wx.showToast({ title: '准备就绪', icon: 'success' });
                 };
 
                 image.onerror = (err) => {
                     console.error('Canvas image load failed', err);
-                    wx.hideLoading();
+                    this.setData({ isLoading: false });
                     wx.showToast({ title: '图片加载失败', icon: 'none' });
                 };
             });
@@ -128,7 +129,8 @@ Page({
             return;
         }
 
-        wx.showLoading({ title: '魔法生成中...', mask: true });
+        wx.showToast({ title: '魔法生成中...', icon: 'none' }); // Optional hint
+        this.setData({ isLoading: true, loadingText: 'AI 正在疯狂绘图中...' });
 
         wx.request({
             url: 'http://localhost:3000/api/process-image',
@@ -141,7 +143,7 @@ Page({
                 'content-type': 'application/json'
             },
             success: (res) => {
-                wx.hideLoading();
+                this.setData({ isLoading: false });
                 console.log('Backend response:', res.data);
 
                 // Check for DALL-E style response (URL) or custom Base64 response
@@ -185,7 +187,7 @@ Page({
                 }
             },
             fail: (err) => {
-                wx.hideLoading();
+                this.setData({ isLoading: false });
                 console.error('Request failed:', err);
                 wx.showToast({ title: '网络请求失败', icon: 'none' });
             }

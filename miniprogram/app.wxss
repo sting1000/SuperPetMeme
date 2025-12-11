@@ -1,0 +1,22 @@
+/** app.wxss **/
+page {
+  /* Z-Gen / Dopamine Palette */
+  --primary-color: #FFD000;    /* Bright Yellow - Core Energy */
+  --accent-color: #3D5AFE;     /* Pop Blue - High Contrast */
+  --secondary-accent: #FF4081; /* Hot Pink - Playful Vibes */
+  --bg-color: #F0F4F8;         /* Light Gray - Neutral Base, slightly cool */
+  --card-bg: #FFFFFF;
+  --text-main: #2D3748;        /* Dark Blue/Gray for text - Softer than black */
+  --text-secondary: #718096;
+
+  /* Shapes & Shadows */
+  --radius-lg: 32rpx;          /* Super rounded for cute feel */
+  --radius-md: 20rpx;
+  --shadow-card: 8rpx 8rpx 0rpx rgba(0,0,0,0.15); /* Hard shadow for Pop Art look */
+  --shadow-btn: 6rpx 6rpx 0rpx rgba(0,0,0,0.9);   /* Deep black shadow for tactic buttons */
+}
+
+/* Global resets or helpers */
+view, text, image, button {
+  box-sizing: border-box;
+}
