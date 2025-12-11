@@ -143,7 +143,9 @@ Page({
                 console.log('Backend response:', res.data);
 
                 let result = '';
-                if (res.data && res.data.data && res.data.data[0].url) {
+                if (res.data && res.data.url) {
+                    result = res.data.url;
+                } else if (res.data && res.data.data && res.data.data[0].url) {
                     result = res.data.data[0].url;
                 } else if (res.data && res.data.result) {
                     result = res.data.result;

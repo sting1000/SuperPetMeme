@@ -1,9 +1,14 @@
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios');
+const OpenAI = require('openai');
 require('dotenv').config();
 
 const app = express();
+
+const client = new OpenAI({
+  apiKey: process.env.API_KEY,
+  baseURL: 'https://aicanapi.com/v1'
+});
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -16,43 +21,52 @@ app.post('/api/process-image', async (req, res) => {
   try {
     const { imageBase64, stylePrompt } = req.body;
 
-    // Note: The user requested image processing, but the available externally compatible model (DALL-E 3) 
-    // strictly supports Text-to-Image generation via this API endpoint.
-    // The Input Image (imageBase64) acts as context but cannot be directly fed into DALL-E 3 for Style Transfer here.
-    // We will use the 'stylePrompt' as the generation prompt.
-
     const textPrompt = stylePrompt || "A cute pet meme";
 
-    // OpenAI-compatible DALL-E 3 Payload
-    const payload = {
-      model: "dall-e-3",
-      prompt: textPrompt,
-      n: 1,
-      size: "1024x1024"
-    };
+    // Ensure the image data has the correct prefix
+    let imageUrl = imageBase64;
+    // Simple check to ensure data URI scheme is present
+    if (!imageUrl.trim().startsWith('data:')) {
+      // Defaulting to jpeg if missing, though ideally frontend sends it
+      imageUrl = `data:image/jpeg;base64,${imageUrl}`;
+    }
 
-    const apiUrl = 'https://aicanapi.com/v1/images/generations';
+    console.log(`Sending request to Gemini 2.5 Flash Image...`);
 
-    console.log(`Sending request to ${apiUrl} with model ${payload.model}`);
-
-    const response = await axios.post(apiUrl, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.API_KEY}`
-      }
+    const response = await client.chat.completions.create({
+      model: "gemini-2.5-flash-image",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: textPrompt },
+            { type: "image_url", image_url: { url: imageUrl } }
+          ]
+        }
+      ]
     });
 
-    // Forward the data back
-    res.json(response.data);
+    const content = response.choices[0].message.content;
+    console.log('Gemini Response Content:', content);
+
+    // Extract URL (HTTPS or Data URI) from the content
+    // Supports markdown format ![image](url) or raw URL
+    const urlMatch = content.match(/(https:\/\/[^\s\)]+|data:image\/[a-zA-Z]+;base64,[^\s\)]+)/);
+
+    if (urlMatch && urlMatch[0]) {
+      res.json({ url: urlMatch[0] });
+    } else {
+      // Log truncated content for debugging to avoid massive logs
+      console.error('Failed to extract URL from content:', content.substring(0, 200) + '...');
+      res.status(500).json({ error: 'Failed to generate image URL' });
+    }
 
   } catch (error) {
     console.error('Error processing image:', error.message);
     if (error.response) {
-      console.error('External API Error Data:', JSON.stringify(error.response.data, null, 2));
-      res.status(error.response.status).json(error.response.data);
-    } else {
-      res.status(500).json({ error: 'Internal Server Error' });
+      console.error('API Error Data:', JSON.stringify(error.response.data, null, 2));
     }
+    res.status(500).json({ error: error.message });
   }
 });
 
