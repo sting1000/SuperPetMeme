@@ -38,14 +38,38 @@ app.post('/api/process-image', async (req, res) => {
     // Default to LINE style if unknown, otherwise use the mapped detailed description
     const effectiveStyle = styleMap[rawStyle] || `${rawStyle} LINE sticker`;
 
-    // Advanced Prompt Template requested by User
-    // Changes: 3x3 layout (9 items), No Text, Specific Style Mapping
-    const textPrompt = `为我生成图中角色的绘制 Q 版的，LINE 风格的半身像表情包。
-风格要求：${effectiveStyle}。
-布局要求：3x3 九宫格布局 (9 unique expressions)。
-核心需求：不要包含任何文字、气泡或标点符号 (No text, no speech bubbles)。专注于角色表情生动性。
-动作参考：开心、疑惑、生气、大笑、哭泣、点赞、惊讶、睡觉、爱心。
-生成的图片需为 4K 分辨率 16:9 背景留白。`;
+    // Advanced Prompt Template - Universal Subject Recognition
+    // AI will auto-detect subject (human, pet, or any character) and maintain consistency
+    const textPrompt = `【任务】将图中主体转绘为 Q 版 LINE 风格表情包。
+
+【主体识别】自动分析图片中的主角（可以是人物、宠物、或任何角色），提取其核心视觉特征。
+
+【一致性要求 - 极其重要】
+- 必须在所有 9 格中保持主体的关键特征高度一致
+- 人物：保持发型、发色、五官比例、肤色、标志性配饰
+- 动物：保持毛色、花纹、耳朵形状、体型特征、独特标记
+- 确保每一格都能被识别为同一个角色
+
+【风格要求】${effectiveStyle}
+
+【布局要求】3x3 九宫格布局，共 9 个独立表情
+
+【内容规范】
+- 绝对禁止任何文字、气泡、标点符号 (Strictly NO text, NO speech bubbles)
+- 专注于表情和肢体语言的表现力
+
+【表情场景参考 - 涵盖日常聊天 & Meme 文化】
+1. 开心挥手 - "Hi~打招呼"
+2. 委屈巴巴 - 眼泪汪汪求关注
+3. 暴怒生气 - 青筋暴起
+4. 笑到捶地 - 爆笑停不下来
+5. 比心/爱心眼 - "爱你哟"
+6. 点赞/OK - 表示认可
+7. 震惊吃瓜 - 惊讶得合不拢嘴
+8. 困觉摸鱼 - 打瞌睡/躺平
+9. 无语翻白眼 - "我真的会谢"
+
+【输出规格】4K 分辨率，16:9 画布，白色/透明背景留白。`;
 
     // Ensure the image data has the correct prefix
     let imageUrl = imageBase64;
