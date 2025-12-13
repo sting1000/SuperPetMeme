@@ -41,7 +41,7 @@
   box-shadow: var(--shadow-card);
   padding: 32rpx;
   margin-bottom: 40rpx;
-  border: 4rpx solid #1a202c; /* Black border for pop feel */
+  border: 4rpx solid #1a202c;
   position: relative;
   overflow: hidden;
 }
@@ -49,7 +49,7 @@
 /* Hero Stage */
 .image-wrapper {
   width: 100%;
-  aspect-ratio: 1; /* Square */
+  aspect-ratio: 1;
   background-color: #FAFAFA;
   border-radius: var(--radius-md);
   border: 4rpx dashed #CBD5E0;
@@ -88,34 +88,29 @@
   font-weight: bold;
 }
 
-/* Re-upload Hint Overlay */
-.reupload-hint {
+/* Floating Swap Button */
+.swap-btn {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  right: 16rpx;
+  bottom: 16rpx;
+  width: 72rpx;
+  height: 72rpx;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  opacity: 0;
-  transition: opacity 0.2s;
-  color: white;
-  font-weight: bold;
-  font-size: 32rpx;
+  font-size: 36rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
+  z-index: 5;
+  border: 3rpx solid #1a202c;
+  transition: all 0.15s ease;
 }
 
-.image-wrapper.clickable:hover .reupload-hint,
-.image-wrapper.clickable:active .reupload-hint {
-  opacity: 1; /* Show specific hint on interaction if platform supports hover or just active */
+.swap-btn:active {
+  transform: scale(0.9);
+  background: #EDF2F7;
 }
-
-/* Force hint visible on active press for touch devices */
-.image-wrapper.clickable:active .reupload-hint {
-  opacity: 1;
-}
-
 
 /* Loading Overlay */
 .loading-overlay {
@@ -162,7 +157,7 @@
   50% { opacity: 0.6; }
 }
 
-/* Controls */
+/* Style Selector */
 .style-selector {
   margin-bottom: 32rpx;
   transition: opacity 0.3s;
@@ -182,13 +177,14 @@
   display: block;
 }
 
-.style-radio-group {
+/* Style Tag Group - Replacing Radio Group */
+.style-tag-group {
   display: flex;
   gap: 20rpx;
   flex-wrap: wrap;
 }
 
-.style-option {
+.style-tag {
   padding: 16rpx 32rpx;
   background: #EDF2F7;
   border-radius: 999px;
@@ -197,14 +193,37 @@
   color: var(--text-secondary);
   border: 4rpx solid transparent;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
 }
 
-.style-option.selected {
+.style-tag:active {
+  transform: scale(0.95);
+}
+
+.style-tag.selected {
   background: var(--primary-color);
   color: #1a202c;
   border: 4rpx solid #1a202c;
   box-shadow: 4rpx 4rpx 0rpx #1a202c;
   transform: translateY(-2rpx);
+}
+
+.style-tag.selected:active {
+  transform: translateY(0);
+  box-shadow: 2rpx 2rpx 0rpx #1a202c;
+}
+
+/* Cache Indicator Dot */
+.cache-dot {
+  font-size: 22rpx;
+  color: #38A169;
+  font-weight: 900;
+}
+
+.style-tag.selected .cache-dot {
+  color: #276749;
 }
 
 /* Buttons Area */
@@ -247,7 +266,7 @@
 }
 
 .save-btn {
-  background-color: var(--secondary-accent); /* Hot Pink */
+  background-color: var(--secondary-accent);
   color: white;
   animation: filePop 0.3s ease-out;
 }

@@ -1,60 +1,111 @@
 Page({
     data: {
-        displayImage: '',     // The Hero Image (can be original or result)
-        processedImage: '',   // Base64 of the square original image (for API)
-        isGenerated: false,   // State: true if showing result
+        // === Core State ===
+        originalImage: '',      // User's uploaded original image temp path
+        processedImage: '',     // Base64 of square image (for API)
+        currentStyle: 'hand-drawn',  // Currently selected style key
+        styleCache: {},         // Cache: { 'hand-drawn': 'path', 'ghibli': 'path', ... }
+
+        // === Computed Display State ===
+        displayImage: '',       // Current image to display (computed from cache/original)
+        hasGenerated: false,    // Whether current style has generated result
+
+        // === UI State ===
         styles: [
-            { name: '治愈手绘', value: 'hand-drawn', checked: true },
-            { name: '宫崎骏风', value: 'ghibli', checked: false },
-            { name: '日系涂鸦', value: 'doodle', checked: false }
+            { name: '治愈手绘', value: 'hand-drawn' },
+            { name: '宫崎骏风', value: 'ghibli' },
+            { name: '日系涂鸦', value: 'doodle' }
         ],
-        selectedStyle: 'hand-drawn',
-        isLoading: false,
+        isGenerating: false,
         loadingText: '处理中...'
     },
 
     onLoad() {
-        // Determine the selected style initially
-        const style = this.data.styles.find(s => s.checked);
-        if (style) {
-            this.setData({ selectedStyle: style.value });
+        // No special initialization needed
+    },
+
+    // === Core: Update Display Image ===
+    // Call this whenever originalImage, currentStyle, or styleCache changes
+    updateDisplayImage() {
+        const { styleCache, currentStyle, originalImage } = this.data;
+        const cachedImage = styleCache[currentStyle];
+        const displayImage = cachedImage || originalImage || '';
+        const hasGenerated = !!cachedImage;
+
+        console.log('[updateDisplayImage]', {
+            currentStyle,
+            cachedImage: cachedImage ? 'exists' : 'none',
+            originalImage: originalImage ? 'exists' : 'none',
+            displayImage: displayImage ? 'set' : 'empty'
+        });
+
+        this.setData({ displayImage, hasGenerated });
+    },
+
+    // === Event Handlers ===
+
+    // Hero area tap - only trigger upload if no image yet
+    onHeroTap() {
+        if (!this.data.originalImage) {
+            this.chooseImage();
         }
     },
 
-    onHeroTap() {
-        // Always trigger media selection to upload/replace
+    // Floating swap button tap
+    onSwapTap() {
         this.chooseImage();
     },
 
-    onStyleChange(e) {
-        this.setData({
-            selectedStyle: e.detail.value
+    // Style tag tap - switch style, update display (NO auto-generation)
+    onStyleTap(e) {
+        const style = e.currentTarget.dataset.style;
+        if (style === this.data.currentStyle) return;
+        if (this.data.isGenerating) return;
+
+        console.log('[onStyleTap] Switching to style:', style);
+
+        // Update current style and display image
+        // Do NOT auto-trigger generation - user must click generate button
+        this.setData({ currentStyle: style }, () => {
+            this.updateDisplayImage();
+
+            if (this.data.styleCache[style]) {
+                console.log('[onStyleTap] Cache hit, instant display');
+            } else {
+                console.log('[onStyleTap] Cache miss, waiting for user to click generate');
+            }
         });
     },
 
+    // Choose and upload new image
     chooseImage() {
+        if (this.data.isGenerating) return;
+
         wx.chooseMedia({
             count: 1,
             mediaType: ['image'],
             sourceType: ['album', 'camera'],
             success: (res) => {
                 const tempFilePath = res.tempFiles[0].tempFilePath;
+                console.log('[chooseImage] Selected:', tempFilePath);
 
-                // 1. Display the image immediately AND Reset State
+                // ⚠️ Critical: Clear cache when uploading NEW image
                 this.setData({
-                    displayImage: tempFilePath,
-                    isGenerated: false,   // Reset generated state
-                    processedImage: ''    // Clear old processed data until ready
+                    originalImage: tempFilePath,
+                    displayImage: tempFilePath,  // Immediately show the new image
+                    styleCache: {},              // Reset cache - old generated images are stale
+                    processedImage: '',          // Clear until processing complete
+                    hasGenerated: false
                 });
 
-                // 2. Get Image Info to guide Canvas resizing
+                // Get image info for canvas processing
                 wx.getImageInfo({
                     src: tempFilePath,
                     success: (imgInfo) => {
                         this.processImageToSquare(tempFilePath, imgInfo.width, imgInfo.height);
                     },
                     fail: (err) => {
-                        console.error('Failed to get image info', err);
+                        console.error('[chooseImage] Failed to get image info', err);
                         wx.showToast({ title: '无法读取图片', icon: 'none' });
                     }
                 });
@@ -62,85 +113,86 @@ Page({
         });
     },
 
+    // Process image to 1024x1024 square with white padding
     processImageToSquare(path, imgW, imgH) {
-        this.setData({ isLoading: true, loadingText: '正在给主子拍照...' });
+        this.setData({ isGenerating: true, loadingText: '正在给主子拍照...' });
 
-        // Create SelectorQuery to get the canvas node
         const query = wx.createSelectorQuery();
         query.select('#processCanvas')
             .fields({ node: true, size: true })
             .exec((res) => {
                 if (!res[0] || !res[0].node) {
-                    this.setData({ isLoading: false });
+                    this.setData({ isGenerating: false });
                     wx.showToast({ title: 'Canvas 初始化失败', icon: 'none' });
                     return;
                 }
 
                 const canvas = res[0].node;
                 const ctx = canvas.getContext('2d');
-
-                // Standardize to 1024x1024
                 const size = 1024;
 
-                // Set canvas physical size
                 canvas.width = size;
                 canvas.height = size;
 
-                // Create an Image object for Canvas
                 const image = canvas.createImage();
                 image.src = path;
 
                 image.onload = () => {
-                    // 1. Fill White Background
+                    // Fill white background
                     ctx.fillStyle = '#ffffff';
                     ctx.fillRect(0, 0, size, size);
 
-                    // 2. Calculate Center Position
+                    // Calculate center position
                     const scale = Math.min(size / imgW, size / imgH);
                     const drawW = imgW * scale;
                     const drawH = imgH * scale;
                     const x = (size - drawW) / 2;
                     const y = (size - drawH) / 2;
 
-                    // 3. Draw Image
+                    // Draw image
                     ctx.drawImage(image, x, y, drawW, drawH);
 
-                    // 4. Export to Base64
+                    // Export to Base64
                     const base64 = canvas.toDataURL('image/png', 1.0);
 
-                    this.setData({ processedImage: base64, isLoading: false });
+                    this.setData({ processedImage: base64, isGenerating: false });
+                    console.log('[processImageToSquare] Complete, base64 length:', base64.length);
                     wx.showToast({ title: '准备就绪', icon: 'success' });
                 };
 
                 image.onerror = (err) => {
-                    console.error('Canvas image load failed', err);
-                    this.setData({ isLoading: false });
+                    console.error('[processImageToSquare] Canvas image load failed', err);
+                    this.setData({ isGenerating: false });
                     wx.showToast({ title: '图片加载失败', icon: 'none' });
                 };
             });
     },
 
+    // Generate meme with current style
     generateMeme() {
         if (!this.data.processedImage) {
             wx.showToast({ title: '请先上传图片', icon: 'none' });
             return;
         }
+        if (this.data.isGenerating) return;
 
-        this.setData({ isLoading: true, loadingText: 'AI 正在疯狂绘图中...' });
+        const currentStyle = this.data.currentStyle;
+        console.log('[generateMeme] Starting for style:', currentStyle);
+
+        this.setData({ isGenerating: true, loadingText: 'AI 正在疯狂绘图中...' });
 
         wx.request({
             url: 'http://localhost:3000/api/process-image',
             method: 'POST',
             data: {
                 imageBase64: this.data.processedImage,
-                stylePrompt: `A cute pet in ${this.data.selectedStyle} style`
+                stylePrompt: `A cute pet in ${currentStyle} style`
             },
             header: {
                 'content-type': 'application/json'
             },
             success: (res) => {
-                this.setData({ isLoading: false });
-                console.log('Backend response:', res.data);
+                console.log('[generateMeme] Backend response:', res.data);
 
                 let result = '';
                 if (res.data && res.data.url) {
@@ -154,7 +206,8 @@ Page({
                 }
 
                 if (!result) {
-                    console.error('Backend error:', res);
+                    console.error('[generateMeme] No result in response:', res);
+                    this.setData({ isGenerating: false });
                     wx.showToast({ title: '生成失败，请重试', icon: 'none' });
                     return;
                 }
@@ -163,56 +216,70 @@ Page({
                 if (result.startsWith('data:image') || !result.startsWith('http')) {
                     const fs = wx.getFileSystemManager();
                     const base64Data = result.replace(/^data:image\/\w+;base64,/, "");
-                    const filePath = wx.env.USER_DATA_PATH + '/result.png';
+                    const filePath = `${wx.env.USER_DATA_PATH}/result_${currentStyle}_${Date.now()}.png`;
 
                     fs.writeFile({
                         filePath: filePath,
                         data: base64Data,
                         encoding: 'base64',
                         success: () => {
-                            this.setData({
-                                displayImage: filePath + '?t=' + new Date().getTime(), // Swap Hero Image with cache busting
-                                isGenerated: true      // Mark as generated
-                            });
+                            console.log('[generateMeme] Saved to:', filePath);
+                            this.saveToCache(currentStyle, filePath);
                         },
                         fail: (err) => {
-                            console.error('Write file failed:', err);
+                            console.error('[generateMeme] Write file failed:', err);
+                            this.setData({ isGenerating: false });
                             wx.showToast({ title: '文件保存失败', icon: 'none' });
                         }
                     });
                 } else {
-                    // It's a URL
-                    this.setData({
-                        displayImage: result, // Swap Hero Image
-                        isGenerated: true    // Mark as generated
-                    });
+                    // It's a URL - write directly to cache
+                    console.log('[generateMeme] Using URL:', result);
+                    this.saveToCache(currentStyle, result);
                 }
             },
             fail: (err) => {
-                this.setData({ isLoading: false });
-                console.error('Request failed:', err);
+                this.setData({ isGenerating: false });
+                console.error('[generateMeme] Request failed:', err);
                 wx.showToast({ title: '网络请求失败', icon: 'none' });
             }
         });
     },
 
+    // Helper: Save result to cache and update display
+    saveToCache(style, imagePath) {
+        const newCache = { ...this.data.styleCache };
+        newCache[style] = imagePath;
+
+        this.setData({
+            styleCache: newCache,
+            isGenerating: false
+        }, () => {
+            // Update display if this is still the current style
+            if (this.data.currentStyle === style) {
+                this.updateDisplayImage();
+            }
+            wx.showToast({ title: '生成成功', icon: 'success' });
+        });
+    },
+
+    // Save current displayed image to album
     saveImage() {
-        if (!this.data.isGenerated || !this.data.displayImage) return;
+        const currentStyle = this.data.currentStyle;
+        const cachedPath = this.data.styleCache[currentStyle];
 
-        // Strip the query parameter we added for cache busting
-        const filePath = this.data.displayImage.split('?')[0];
+        if (!cachedPath) return;
 
-        // Check if it is the local generated file
-        // In DevTools, USER_DATA_PATH (http://usr) looks like a URL, so we must check this first
-        // or ensure we don't treat it as a remote download.
+        // Strip any query parameters
+        const filePath = cachedPath.split('?')[0];
+
         if (filePath.includes(wx.env.USER_DATA_PATH) || !filePath.startsWith('http')) {
-            // Local file (either temp file or user data file)
+            // Local file
             wx.saveImageToPhotosAlbum({
                 filePath: filePath,
                 success: () => wx.showToast({ title: '保存成功', icon: 'success' }),
                 fail: (err) => {
-                    console.error('Save failed', err);
-                    // Check for permission issue
+                    console.error('[saveImage] Save failed', err);
                     if (err.errMsg && err.errMsg.includes('auth deny')) {
                         wx.showModal({
                             title: '权限提示',
@@ -227,7 +294,7 @@ Page({
                 }
             });
         } else {
-            // Truly remote URL (e.g. from a legitimate http server)
+            // Remote URL
             wx.downloadFile({
                 url: filePath,
                 success: (res) => {
@@ -238,7 +305,7 @@ Page({
                     });
                 },
                 fail: (err) => {
-                    console.error('Download failed', err);
+                    console.error('[saveImage] Download failed', err);
                     wx.showToast({ title: '下载失败', icon: 'none' });
                 }
             });

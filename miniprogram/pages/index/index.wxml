@@ -7,10 +7,17 @@
     <text class="subtitle">Z世代的宠物黑科技 ⚡️</text>
   </view>
 
-  <!-- Hero Stage: Combined Display & Upload Trigger -->
+  <!-- Hero Stage: Smart Display Logic -->
   <view class="card hero-stage-card">
-    <view class="image-wrapper {{!processedImage ? 'clickable' : ''}}" bindtap="onHeroTap">
-      <image class="hero-image" src="{{displayImage}}" mode="aspectFit" wx:if="{{displayImage}}"></image>
+    <view class="image-wrapper {{!originalImage ? 'clickable' : ''}}" bindtap="onHeroTap">
+      
+      <!-- Display Image (simple binding) -->
+      <image 
+        class="hero-image" 
+        src="{{displayImage}}" 
+        mode="aspectFit" 
+        wx:if="{{displayImage}}">
+      </image>
       
       <!-- Empty State Trigger -->
       <view class="placeholder" wx:else>
@@ -19,41 +26,53 @@
       </view>
       
       <!-- Loading Overlay -->
-      <view class="loading-overlay" wx:if="{{isLoading}}">
+      <view class="loading-overlay" wx:if="{{isGenerating}}">
         <view class="loading-content">
           <text class="loading-spinner">🌀</text>
           <text class="loading-text">{{loadingText}}</text>
         </view>
       </view>
 
-      <!-- Re-upload Hint (Optional, subtle overlay on image) -->
-      <view class="reupload-hint" wx:if="{{displayImage && !isLoading && !isGenerated}}">
-        <text>点击更换图片</text>
-      </view>
+      <!-- Floating Swap Button (always visible when image exists) -->
+      <view class="swap-btn" catchtap="onSwapTap" wx:if="{{originalImage && !isGenerating}}">🔄</view>
     </view>
   </view>
 
   <!-- Control Panel -->
   <view class="card control-card">
     
-    <!-- Style Selector -->
+    <!-- Style Selector - Now with clickable tags -->
     <view class="style-selector {{!processedImage ? 'disabled' : ''}}">
       <text class="section-title">✨ 选择画风</text>
-      <radio-group class="style-radio-group" bindchange="onStyleChange">
-        <label class="style-option {{selectedStyle === item.value ? 'selected' : ''}}" wx:for="{{styles}}" wx:key="value">
-          <radio value="{{item.value}}" checked="{{item.checked}}" hidden="true"/>
+      <view class="style-tag-group">
+        <view 
+          class="style-tag {{currentStyle === item.value ? 'selected' : ''}}" 
+          wx:for="{{styles}}" 
+          wx:key="value"
+          data-style="{{item.value}}"
+          bindtap="onStyleTap">
           <text class="style-name">{{item.name}}</text>
-        </label>
-      </radio-group>
+          <!-- Cache indicator -->
+          <text class="cache-dot" wx:if="{{styleCache[item.value]}}">✓</text>
+        </view>
+      </view>
     </view>
 
     <!-- Actions Area -->
     <view class="action-area">
-      <button class="btn generate-btn" bindtap="generateMeme" disabled="{{!processedImage || isGenerated}}">
-        <text>{{isGenerated ? '✅ 生成完毕' : '🚀 一键生成'}}</text>
+      <!-- Generate Button - Only enabled if no cache for current style -->
+      <button 
+        class="btn generate-btn" 
+        bindtap="generateMeme" 
+        disabled="{{!processedImage || hasGenerated || isGenerating}}">
+        <text>{{hasGenerated ? '✅ 已生成' : '🚀 一键生成'}}</text>
       </button>
 
-      <button class="btn save-btn" bindtap="saveImage" wx:if="{{isGenerated}}">
+      <!-- Save Button - Only visible when current style has cached result -->
+      <button 
+        class="btn save-btn" 
+        bindtap="saveImage" 
+        wx:if="{{hasGenerated}}">
         <text>💾 保存到相册</text>
       </button>
     </view>
