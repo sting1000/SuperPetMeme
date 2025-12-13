@@ -21,7 +21,31 @@ app.post('/api/process-image', async (req, res) => {
   try {
     const { imageBase64, stylePrompt } = req.body;
 
-    const textPrompt = stylePrompt || "A cute pet meme";
+    // Extract style from the frontend prompt "A cute pet in [style] style"
+    let rawStyle = "hand-drawn";
+    const styleMatch = (stylePrompt || "").match(/in (.*?) style/i);
+    if (styleMatch && styleMatch[1]) {
+      rawStyle = styleMatch[1];
+    }
+
+    // Map frontend values to descriptive prompt keywords
+    const styleMap = {
+      'hand-drawn': 'warm colored pencil hand-drawn',
+      'ghibli': 'Studio Ghibli detailed anime',
+      'doodle': 'Japanese sketchy doodle style, simple black outlines, flat color, no shading, minimal vector art'
+    };
+
+    // Default to LINE style if unknown, otherwise use the mapped detailed description
+    const effectiveStyle = styleMap[rawStyle] || `${rawStyle} LINE sticker`;
+
+    // Advanced Prompt Template requested by User
+    // Changes: 3x3 layout (9 items), No Text, Specific Style Mapping
+    const textPrompt = `为我生成图中角色的绘制 Q 版的，LINE 风格的半身像表情包。
+风格要求：${effectiveStyle}。
+布局要求：3x3 九宫格布局 (9 unique expressions)。
+核心需求：不要包含任何文字、气泡或标点符号 (No text, no speech bubbles)。专注于角色表情生动性。
+动作参考：开心、疑惑、生气、大笑、哭泣、点赞、惊讶、睡觉、爱心。
+生成的图片需为 4K 分辨率 16:9 背景留白。`;
 
     // Ensure the image data has the correct prefix
     let imageUrl = imageBase64;

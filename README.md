@@ -2,6 +2,8 @@
 
 这是一个简单有趣的微信小程序，用户可以上传宠物照片，通过后端调用 AI 服务自动生成可爱的表情包。
 
+![Demo](./image.png)
+
 ## 技术栈
 
 - **Frontend**: WeChat MiniProgram (Native)

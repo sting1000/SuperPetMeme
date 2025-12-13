@@ -4,11 +4,11 @@ Page({
         processedImage: '',   // Base64 of the square original image (for API)
         isGenerated: false,   // State: true if showing result
         styles: [
-            { name: '赛博朋克', value: 'cyberpunk', checked: true },
-            { name: '3D 迪士尼', value: '3d-disney', checked: false },
-            { name: '油画', value: 'oil-painting', checked: false }
+            { name: '治愈手绘', value: 'hand-drawn', checked: true },
+            { name: '宫崎骏风', value: 'ghibli', checked: false },
+            { name: '日系涂鸦', value: 'doodle', checked: false }
         ],
-        selectedStyle: 'cyberpunk',
+        selectedStyle: 'hand-drawn',
         isLoading: false,
         loadingText: '处理中...'
     },
@@ -171,7 +171,7 @@ Page({
                         encoding: 'base64',
                         success: () => {
                             this.setData({
-                                displayImage: filePath, // Swap Hero Image
+                                displayImage: filePath + '?t=' + new Date().getTime(), // Swap Hero Image with cache busting
                                 isGenerated: true      // Mark as generated
                             });
                         },
@@ -199,10 +199,35 @@ Page({
     saveImage() {
         if (!this.data.isGenerated || !this.data.displayImage) return;
 
-        const filePath = this.data.displayImage;
+        // Strip the query parameter we added for cache busting
+        const filePath = this.data.displayImage.split('?')[0];
 
-        // If it's a remote URL, download it first, otherwise save directly
-        if (filePath.startsWith('http')) {
+        // Check if it is the local generated file
+        // In DevTools, USER_DATA_PATH (http://usr) looks like a URL, so we must check this first
+        // or ensure we don't treat it as a remote download.
+        if (filePath.includes(wx.env.USER_DATA_PATH) || !filePath.startsWith('http')) {
+            // Local file (either temp file or user data file)
+            wx.saveImageToPhotosAlbum({
+                filePath: filePath,
+                success: () => wx.showToast({ title: '保存成功', icon: 'success' }),
+                fail: (err) => {
+                    console.error('Save failed', err);
+                    // Check for permission issue
+                    if (err.errMsg && err.errMsg.includes('auth deny')) {
+                        wx.showModal({
+                            title: '权限提示',
+                            content: '保存图片需要访问相册，请在设置中开启权限',
+                            success: (res) => {
+                                if (res.confirm) wx.openSetting();
+                            }
+                        });
+                    } else {
+                        wx.showToast({ title: '保存失败', icon: 'none' });
+                    }
+                }
+            });
+        } else {
+            // Truly remote URL (e.g. from a legitimate http server)
             wx.downloadFile({
                 url: filePath,
                 success: (res) => {
@@ -211,17 +236,10 @@ Page({
                         success: () => wx.showToast({ title: '保存成功', icon: 'success' }),
                         fail: () => wx.showToast({ title: '保存失败', icon: 'none' })
                     });
-                }
-            });
-        } else {
-            // It is already a local file
-            wx.saveImageToPhotosAlbum({
-                filePath: filePath,
-                success: () => wx.showToast({ title: '保存成功', icon: 'success' }),
+                },
                 fail: (err) => {
-                    console.error('Save failed', err);
-                    wx.showToast({ title: '保存失败', icon: 'none' });
-                    // Usually this fails if permission denied or file not found
+                    console.error('Download failed', err);
+                    wx.showToast({ title: '下载失败', icon: 'none' });
                 }
             });
         }
