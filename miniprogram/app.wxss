@@ -1,22 +1,28 @@
 /** app.wxss **/
 page {
-  /* Z-Gen / Dopamine Palette */
-  --primary-color: #FFD000;    /* Bright Yellow - Core Energy */
-  --accent-color: #3D5AFE;     /* Pop Blue - High Contrast */
-  --secondary-accent: #FF4081; /* Hot Pink - Playful Vibes */
-  --bg-color: #F0F4F8;         /* Light Gray - Neutral Base, slightly cool */
+  /* 🎨 多巴胺波普风 Dopamine Pop Art Palette */
+  --primary-color: #FFD93D;      /* 多巴胺黄 - 核心能量色 */
+  --accent-color: #FF6B6B;       /* 活力珊瑚红 - 次要强调 */
+  --secondary-accent: #4ECDC4;   /* 薄荷绿 - 清新点缀 */
+  --bg-color: #FFFBF0;           /* 极淡米色 - 温暖舒适背景 */
   --card-bg: #FFFFFF;
-  --text-main: #2D3748;        /* Dark Blue/Gray for text - Softer than black */
-  --text-secondary: #718096;
+  --text-main: #1A1A2E;          /* 深黑蓝 - 主文字 */
+  --text-secondary: #666666;
+  --border-color: #1A1A2E;       /* 粗边框颜色 */
 
-  /* Shapes & Shadows */
-  --radius-lg: 32rpx;          /* Super rounded for cute feel */
-  --radius-md: 20rpx;
-  --shadow-card: 8rpx 8rpx 0rpx rgba(0,0,0,0.15); /* Hard shadow for Pop Art look */
-  --shadow-btn: 6rpx 6rpx 0rpx rgba(0,0,0,0.9);   /* Deep black shadow for tactic buttons */
+  /* 波普风形状 & 阴影 */
+  --radius-lg: 24rpx;
+  --radius-md: 16rpx;
+  --radius-full: 999rpx;
+  --shadow-card: 6rpx 6rpx 0rpx #1A1A2E;    /* 硬阴影波普风 */
+  --shadow-btn: 4rpx 4rpx 0rpx #1A1A2E;
+  --shadow-btn-pressed: 2rpx 2rpx 0rpx #1A1A2E;
+  
+  /* 字体 */
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
 }
 
-/* Global resets or helpers */
+/* Global resets */
 view, text, image, button {
   box-sizing: border-box;
 }

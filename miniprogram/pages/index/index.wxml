@@ -2,16 +2,17 @@
   <!-- Hidden Canvas for Image Processing -->
   <canvas type="2d" id="processCanvas" style="position:fixed; left:100%; width: 1024px; height: 1024px;"></canvas>
 
+  <!-- 🎨 Header with catchy slogan -->
   <view class="header">
-    <text class="title">萌宠表情包工坊</text>
-    <text class="subtitle">Z世代的宠物黑科技 ⚡️</text>
+    <text class="title">表情包制造机 🤪</text>
+    <text class="subtitle">一秒变身沙雕艺术家</text>
   </view>
 
-  <!-- Hero Stage: Smart Display Logic -->
+  <!-- Hero Stage -->
   <view class="card hero-stage-card">
     <view class="image-wrapper {{!originalImage ? 'clickable' : ''}}" bindtap="onHeroTap">
       
-      <!-- Display Image (simple binding) -->
+      <!-- Display Image -->
       <image 
         class="hero-image" 
         src="{{displayImage}}" 
@@ -19,31 +20,34 @@
         wx:if="{{displayImage}}">
       </image>
       
-      <!-- Empty State Trigger -->
+      <!-- Empty State -->
       <view class="placeholder" wx:else>
-        <text class="placeholder-icon">📷</text>
-        <text class="placeholder-text">点击上传主子美照</text>
+        <text class="placeholder-icon">📸</text>
+        <text class="placeholder-text">戳我上传你的主子</text>
+        <text class="placeholder-hint">支持喵星人/汪星人/人类</text>
       </view>
       
       <!-- Loading Overlay -->
       <view class="loading-overlay" wx:if="{{isGenerating}}">
         <view class="loading-content">
-          <text class="loading-spinner">🌀</text>
+          <text class="loading-spinner">✨</text>
           <text class="loading-text">{{loadingText}}</text>
         </view>
       </view>
 
-      <!-- Floating Swap Button (always visible when image exists) -->
-      <view class="swap-btn" catchtap="onSwapTap" wx:if="{{originalImage && !isGenerating}}">🔄</view>
+      <!-- Floating Swap Button -->
+      <view class="swap-btn" catchtap="onSwapTap" wx:if="{{originalImage && !isGenerating}}">
+        <text>🔄</text>
+      </view>
     </view>
   </view>
 
   <!-- Control Panel -->
   <view class="card control-card">
     
-    <!-- Style Selector - Now with clickable tags -->
+    <!-- Style Selector -->
     <view class="style-selector {{!processedImage ? 'disabled' : ''}}">
-      <text class="section-title">✨ 选择画风</text>
+      <text class="section-title">🎨 选择滤镜风格</text>
       <view class="style-tag-group">
         <view 
           class="style-tag {{currentStyle === item.value ? 'selected' : ''}}" 
@@ -52,7 +56,6 @@
           data-style="{{item.value}}"
           bindtap="onStyleTap">
           <text class="style-name">{{item.name}}</text>
-          <!-- Cache indicator -->
           <text class="cache-dot" wx:if="{{styleCache[item.value]}}">✓</text>
         </view>
       </view>
@@ -60,15 +63,13 @@
 
     <!-- Actions Area -->
     <view class="action-area">
-      <!-- Generate Button - Only enabled if no cache for current style -->
       <button 
         class="btn generate-btn" 
         bindtap="generateMeme" 
         disabled="{{!processedImage || hasGenerated || isGenerating}}">
-        <text>{{hasGenerated ? '✅ 已生成' : '🚀 一键生成'}}</text>
+        <text>{{hasGenerated ? '✅ 搞定！' : '🚀 开始整活'}}</text>
       </button>
 
-      <!-- Save Button - Only visible when current style has cached result -->
       <button 
         class="btn save-btn" 
         bindtap="saveImage" 
@@ -76,6 +77,11 @@
         <text>💾 保存到相册</text>
       </button>
     </view>
+  </view>
+
+  <!-- Footer hint -->
+  <view class="footer">
+    <text class="footer-text">✨ 每种风格独立生成，可以都试试哦~</text>
   </view>
 
 </view>

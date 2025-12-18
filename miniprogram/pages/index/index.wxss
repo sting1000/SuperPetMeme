@@ -1,58 +1,62 @@
-/** index.wxss **/
+/** index.wxss - 多巴胺波普风 Dopamine Pop Art Style **/
+
 .container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40rpx 24rpx;
+  padding: 32rpx 24rpx;
   background-color: var(--bg-color);
   min-height: 100vh;
   box-sizing: border-box;
 }
 
+/* ===== Header ===== */
 .header {
-  margin-bottom: 40rpx;
+  margin-bottom: 32rpx;
   text-align: center;
 }
 
 .title {
-  font-size: 48rpx;
+  font-size: 56rpx;
   font-weight: 900;
   color: var(--text-main);
   display: block;
-  margin-bottom: 8rpx;
-  text-shadow: 2rpx 2rpx 0px rgba(0,0,0,0.1);
+  margin-bottom: 12rpx;
   letter-spacing: 2rpx;
 }
 
 .subtitle {
   font-size: 28rpx;
-  color: var(--text-secondary);
-  font-weight: 500;
-  background: #E2E8F0;
-  padding: 4rpx 16rpx;
-  border-radius: 999px;
+  font-weight: 600;
+  color: var(--text-main);
+  background: var(--primary-color);
+  padding: 8rpx 24rpx;
+  border-radius: var(--radius-full);
+  border: 3rpx solid var(--border-color);
+  box-shadow: 3rpx 3rpx 0rpx var(--border-color);
+  display: inline-block;
 }
 
-/* Card Common Styles */
+/* ===== Card - Pop Art Style ===== */
 .card {
   width: 100%;
   background: var(--card-bg);
   border-radius: var(--radius-lg);
+  border: 4rpx solid var(--border-color);
   box-shadow: var(--shadow-card);
-  padding: 32rpx;
-  margin-bottom: 40rpx;
-  border: 4rpx solid #1a202c;
+  padding: 24rpx;
+  margin-bottom: 28rpx;
   position: relative;
   overflow: hidden;
 }
 
-/* Hero Stage */
+/* ===== Hero Stage ===== */
 .image-wrapper {
   width: 100%;
   aspect-ratio: 1;
-  background-color: #FAFAFA;
+  background: linear-gradient(135deg, #FFFBF0 0%, #FFF5E1 100%);
   border-radius: var(--radius-md);
-  border: 4rpx dashed #CBD5E0;
+  border: 3rpx dashed #CCCCCC;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -61,55 +65,75 @@
   transition: all 0.2s ease;
 }
 
+.image-wrapper.clickable {
+  cursor: pointer;
+}
+
 .image-wrapper.clickable:active {
   transform: scale(0.98);
-  border-color: var(--accent-color);
-  background-color: #EBF8FF;
+  border-color: var(--primary-color);
+  border-style: solid;
+  background: linear-gradient(135deg, #FFF9E6 0%, #FFEFCC 100%);
 }
 
 .hero-image {
   width: 100%;
   height: 100%;
+  border-radius: var(--radius-md);
 }
 
+/* Placeholder */
 .placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16rpx;
-  color: #A0AEC0;
+  gap: 12rpx;
+  color: var(--text-secondary);
 }
 
 .placeholder-icon {
   font-size: 80rpx;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10rpx); }
 }
 
 .placeholder-text {
-  font-weight: bold;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.placeholder-hint {
+  font-size: 24rpx;
+  color: var(--text-secondary);
 }
 
 /* Floating Swap Button */
 .swap-btn {
   position: absolute;
-  right: 16rpx;
-  bottom: 16rpx;
-  width: 72rpx;
-  height: 72rpx;
-  background: rgba(255, 255, 255, 0.95);
+  right: 20rpx;
+  bottom: 20rpx;
+  width: 80rpx;
+  height: 80rpx;
+  background: var(--card-bg);
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 36rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
+  font-size: 40rpx;
+  border: 3rpx solid var(--border-color);
+  box-shadow: 4rpx 4rpx 0rpx var(--border-color);
   z-index: 5;
-  border: 3rpx solid #1a202c;
   transition: all 0.15s ease;
 }
 
 .swap-btn:active {
-  transform: scale(0.9);
-  background: #EDF2F7;
+  transform: translate(2rpx, 2rpx);
+  box-shadow: 2rpx 2rpx 0rpx var(--border-color);
 }
 
 /* Loading Overlay */
@@ -119,12 +143,13 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(4px);
+  background: rgba(255, 251, 240, 0.92);
+  backdrop-filter: blur(8rpx);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 10;
+  border-radius: var(--radius-md);
 }
 
 .loading-content {
@@ -134,144 +159,154 @@
 }
 
 .loading-spinner {
-  font-size: 64rpx;
-  animation: spin 1s linear infinite;
+  font-size: 72rpx;
+  animation: sparkle 1.2s ease-in-out infinite;
   display: block;
-  margin-bottom: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+@keyframes sparkle {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.2) rotate(180deg); opacity: 0.8; }
 }
 
 .loading-text {
   font-size: 32rpx;
-  font-weight: bold;
-  color: var(--accent-color);
-  animation: pulse 1.5s ease-in-out infinite;
+  font-weight: 700;
+  color: var(--text-main);
+  background: var(--primary-color);
+  padding: 8rpx 24rpx;
+  border-radius: var(--radius-full);
+  border: 2rpx solid var(--border-color);
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-/* Style Selector */
+/* ===== Style Selector ===== */
 .style-selector {
-  margin-bottom: 32rpx;
+  margin-bottom: 24rpx;
   transition: opacity 0.3s;
 }
 
 .style-selector.disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   pointer-events: none;
-  filter: grayscale(100%);
 }
 
 .section-title {
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 800;
   color: var(--text-main);
-  margin-bottom: 24rpx;
+  margin-bottom: 20rpx;
   display: block;
 }
 
-/* Style Tag Group - Replacing Radio Group */
+/* Style Tags - Pop Art Pills */
 .style-tag-group {
   display: flex;
-  gap: 20rpx;
+  gap: 16rpx;
   flex-wrap: wrap;
 }
 
 .style-tag {
-  padding: 16rpx 32rpx;
-  background: #EDF2F7;
-  border-radius: 999px;
+  padding: 14rpx 28rpx;
+  background: var(--card-bg);
+  border-radius: var(--radius-full);
   font-size: 28rpx;
-  font-weight: bold;
-  color: var(--text-secondary);
-  border: 4rpx solid transparent;
-  transition: all 0.2s ease;
+  font-weight: 600;
+  color: var(--text-main);
+  border: 3rpx solid var(--border-color);
+  box-shadow: 3rpx 3rpx 0rpx var(--border-color);
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   gap: 8rpx;
 }
 
 .style-tag:active {
-  transform: scale(0.95);
+  transform: translate(2rpx, 2rpx);
+  box-shadow: 1rpx 1rpx 0rpx var(--border-color);
 }
 
 .style-tag.selected {
   background: var(--primary-color);
-  color: #1a202c;
-  border: 4rpx solid #1a202c;
-  box-shadow: 4rpx 4rpx 0rpx #1a202c;
-  transform: translateY(-2rpx);
+  font-weight: 800;
+  border-width: 4rpx;
+  box-shadow: 4rpx 4rpx 0rpx var(--border-color);
 }
 
 .style-tag.selected:active {
-  transform: translateY(0);
-  box-shadow: 2rpx 2rpx 0rpx #1a202c;
+  transform: translate(2rpx, 2rpx);
+  box-shadow: 2rpx 2rpx 0rpx var(--border-color);
 }
 
-/* Cache Indicator Dot */
+/* Cache Indicator */
 .cache-dot {
-  font-size: 22rpx;
-  color: #38A169;
+  font-size: 24rpx;
+  color: #22C55E;
   font-weight: 900;
 }
 
 .style-tag.selected .cache-dot {
-  color: #276749;
+  color: #166534;
 }
 
-/* Buttons Area */
+/* ===== Buttons ===== */
 .action-area {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 20rpx;
 }
 
 .btn {
   width: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   font-size: 32rpx;
-  font-weight: 900;
-  padding: 24rpx 0;
-  border: 4rpx solid #1a202c;
+  font-weight: 800;
+  padding: 28rpx 0;
+  border: 4rpx solid var(--border-color);
   box-shadow: var(--shadow-btn);
-  transition: all 0.1s;
+  transition: all 0.1s ease;
   display: flex;
   justify-content: center;
   align-items: center;
+  background: var(--card-bg);
+  color: var(--text-main);
 }
 
 .btn:active {
-  transform: translate(6rpx, 6rpx);
-  box-shadow: 0rpx 0rpx 0rpx #000;
+  transform: translate(4rpx, 4rpx);
+  box-shadow: 0rpx 0rpx 0rpx var(--border-color);
 }
 
 .generate-btn {
-  background-color: var(--accent-color);
-  color: white;
+  background: var(--primary-color);
 }
 
 .generate-btn[disabled] {
-  background-color: #CBD5E0;
-  color: #718096;
+  background: #E5E5E5;
+  color: #999999;
+  border-color: #CCCCCC;
   box-shadow: none;
-  border-color: #A0AEC0;
   transform: none;
 }
 
 .save-btn {
-  background-color: var(--secondary-accent);
+  background: var(--secondary-accent);
   color: white;
-  animation: filePop 0.3s ease-out;
+  animation: popIn 0.3s ease-out;
 }
 
-@keyframes filePop {
+@keyframes popIn {
   from { transform: scale(0.9); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
+}
+
+/* ===== Footer ===== */
+.footer {
+  margin-top: 8rpx;
+  text-align: center;
+}
+
+.footer-text {
+  font-size: 24rpx;
+  color: var(--text-secondary);
 }
