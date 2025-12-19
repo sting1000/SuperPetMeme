@@ -336,10 +336,10 @@
 
 .restart-btn {
   flex: 1;
-  background: var(--text-secondary); /* Or a lighter neutral color */
-  color: white;
-  border-color: #9CA3AF;
-  box-shadow: 4rpx 4rpx 0rpx #9CA3AF;
+  background: #FFFFFF;
+  color: var(--text-main);
+  border-color: var(--border-color);
+  box-shadow: var(--shadow-btn);
 }
 
 .save-btn {
