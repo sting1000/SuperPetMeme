@@ -263,6 +263,30 @@ Page({
         });
     },
 
+    // Restart: Clear current style result
+    onRestartTap() {
+        const currentStyle = this.data.currentStyle;
+        const newCache = { ...this.data.styleCache };
+        delete newCache[currentStyle]; // Remove from cache
+
+        this.setData({
+            styleCache: newCache,
+            processedImage: '', // Prepare for re-upload if needed? Actually, we might keep the original processed square image.
+            // Wait, the requirement says "Click clear result, back to initial state".
+            // Initial state means showing the original image and the "Start" button.
+            hasGenerated: false // This will show the "Start" button
+        }, () => {
+            if (this.data.processedImage) {
+                // If we have the source image processed, we just need to re-enable the button
+                // But wait, `processedImage` is the input to the API (the square crop).
+                // It should be preserved if we want to regenerate without re-uploading.
+                // The `hasGenerated` flag controls the button state.
+                // updateDisplayImage will see no cache and show originalImage.
+            }
+            this.updateDisplayImage();
+        });
+    },
+
     // Save current displayed image to album
     saveImage() {
         const currentStyle = this.data.currentStyle;

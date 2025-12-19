@@ -5,6 +5,7 @@
   flex-direction: column;
   align-items: center;
   padding: 32rpx 24rpx;
+  padding-bottom: 200rpx; /* Prevent content from being hidden by fixed bar */
   background-color: var(--bg-color);
   min-height: 100vh;
   box-sizing: border-box;
@@ -309,4 +310,45 @@
 .footer-text {
   font-size: 24rpx;
   color: var(--text-secondary);
+}
+
+/* ===== Fixed Bottom Bar ===== */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 24rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  background: var(--bg-color);
+  box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.05);
+  z-index: 100;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-group {
+  display: flex;
+  gap: 24rpx;
+  width: 100%;
+}
+
+.restart-btn {
+  flex: 1;
+  background: var(--text-secondary); /* Or a lighter neutral color */
+  color: white;
+  border-color: #9CA3AF;
+  box-shadow: 4rpx 4rpx 0rpx #9CA3AF;
+}
+
+.save-btn {
+  flex: 2; /* Main action takes more space */
+  background: var(--secondary-accent);
+  color: white;
+  animation: popIn 0.3s ease-out;
+}
+
+.full-width {
+  width: 100%;
 }

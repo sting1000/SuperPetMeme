@@ -61,27 +61,34 @@
       </view>
     </view>
 
-    <!-- Actions Area -->
-    <view class="action-area">
-      <button 
-        class="btn generate-btn" 
-        bindtap="generateMeme" 
-        disabled="{{!processedImage || hasGenerated || isGenerating}}">
-        <text>{{hasGenerated ? '✅ 搞定！' : '🚀 开始整活'}}</text>
-      </button>
 
-      <button 
-        class="btn save-btn" 
-        bindtap="saveImage" 
-        wx:if="{{hasGenerated}}">
-        <text>💾 保存到相册</text>
-      </button>
-    </view>
   </view>
 
   <!-- Footer hint -->
   <view class="footer">
     <text class="footer-text">✨ 每种风格独立生成，可以都试试哦~</text>
+  </view>
+
+  <!-- Fixed Bottom Bar -->
+  <view class="bottom-bar">
+    <!-- State A: Start Button -->
+    <button 
+      wx:if="{{!hasGenerated}}"
+      class="btn generate-btn full-width" 
+      bindtap="generateMeme" 
+      disabled="{{!processedImage || isGenerating}}">
+      <text>{{isGenerating ? '处理中...' : '🚀 开始整活'}}</text>
+    </button>
+
+    <!-- State B: Result Actions -->
+    <view class="btn-group" wx:else>
+      <button class="btn restart-btn" bindtap="onRestartTap">
+        <text>🔄 重来</text>
+      </button>
+      <button class="btn save-btn" bindtap="saveImage">
+        <text>💾 保存</text>
+      </button>
+    </view>
   </view>
 
 </view>
