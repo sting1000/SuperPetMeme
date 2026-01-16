@@ -17,7 +17,14 @@ Page({
             { name: '日系涂鸦', value: 'doodle' }
         ],
         isGenerating: false,
-        loadingText: '处理中...'
+        loadingText: '处理中...',
+
+        // === Crop Popup State ===
+        showCropPopup: false,        // Whether to show the crop popup
+        croppedImages: [],           // Array of 9 cropped image paths
+        selectedMap: {},             // Object map: { 0: true, 1: true, ... } for easier template checking
+        selectedCount: 0,            // Number of selected images
+        isCropping: false            // Whether cropping is in progress
     },
 
     onLoad() {
@@ -271,68 +278,407 @@ Page({
 
         this.setData({
             styleCache: newCache,
-            processedImage: '', // Prepare for re-upload if needed? Actually, we might keep the original processed square image.
-            // Wait, the requirement says "Click clear result, back to initial state".
-            // Initial state means showing the original image and the "Start" button.
-            hasGenerated: false // This will show the "Start" button
+            processedImage: '',
+            hasGenerated: false
         }, () => {
-            if (this.data.processedImage) {
-                // If we have the source image processed, we just need to re-enable the button
-                // But wait, `processedImage` is the input to the API (the square crop).
-                // It should be preserved if we want to regenerate without re-uploading.
-                // The `hasGenerated` flag controls the button state.
-                // updateDisplayImage will see no cache and show originalImage.
-            }
             this.updateDisplayImage();
         });
     },
 
-    // Save current displayed image to album
+    // Open crop popup and start splitting the grid image
     saveImage() {
         const currentStyle = this.data.currentStyle;
         const cachedPath = this.data.styleCache[currentStyle];
 
         if (!cachedPath) return;
 
-        // Strip any query parameters
-        const filePath = cachedPath.split('?')[0];
+        console.log('[saveImage] Opening crop popup for:', cachedPath);
 
-        if (filePath.includes(wx.env.USER_DATA_PATH) || !filePath.startsWith('http')) {
-            // Local file
-            wx.saveImageToPhotosAlbum({
-                filePath: filePath,
-                success: () => wx.showToast({ title: '保存成功', icon: 'success' }),
-                fail: (err) => {
-                    console.error('[saveImage] Save failed', err);
-                    if (err.errMsg && err.errMsg.includes('auth deny')) {
-                        wx.showModal({
-                            title: '权限提示',
-                            content: '保存图片需要访问相册，请在设置中开启权限',
-                            success: (res) => {
-                                if (res.confirm) wx.openSetting();
+        // Show loading first to give feedback
+        wx.showLoading({ title: '准备中...', mask: true });
+
+        this.setData({
+            showCropPopup: true,
+            croppedImages: [],
+            selectedMap: {},
+            selectedCount: 0,
+            isCropping: true
+        }, () => {
+            console.log('[saveImage] Popup setData complete, showCropPopup:', this.data.showCropPopup);
+            // Give the popup time to render before starting heavy processing
+            setTimeout(() => {
+                wx.hideLoading();
+                this.splitGridImage(cachedPath);
+            }, 300);
+        });
+    },
+
+    // Close crop popup
+    onCloseCropPopup() {
+        this.setData({
+            showCropPopup: false,
+            croppedImages: [],
+            selectedMap: {},
+            selectedCount: 0
+        });
+    },
+
+    // Split 3x3 grid image into 9 separate images using Canvas 2D
+    // IMPORTANT: Process sequentially to avoid race conditions
+    splitGridImage(imagePath) {
+        console.log('[splitGridImage] Starting to split:', imagePath);
+
+        const query = wx.createSelectorQuery();
+        query.select('#splitCanvas')
+            .fields({ node: true, size: true })
+            .exec((res) => {
+                if (!res[0] || !res[0].node) {
+                    console.error('[splitGridImage] Canvas not found');
+                    this.setData({ isCropping: false });
+                    wx.showToast({ title: 'Canvas 初始化失败', icon: 'none' });
+                    return;
+                }
+
+                const canvas = res[0].node;
+                const ctx = canvas.getContext('2d');
+                const image = canvas.createImage();
+
+                // Handle both local file and remote URL
+                const loadImage = (src) => {
+                    return new Promise((resolve, reject) => {
+                        image.onload = () => resolve();
+                        image.onerror = (err) => reject(err);
+                        image.src = src;
+                    });
+                };
+
+                // Export single cell with variable size - normalize to square output
+                const exportCellVariable = (index, cellInfo, outputSize) => {
+                    return new Promise((resolve, reject) => {
+                        // Set canvas to output size
+                        canvas.width = outputSize;
+                        canvas.height = outputSize;
+
+                        // Clear and fill white background
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.fillRect(0, 0, outputSize, outputSize);
+
+                        // SAFETY MARGIN: Inflate source area by 10%
+                        const inflationW = cellInfo.w * 0.10;
+                        const inflationH = cellInfo.h * 0.10;
+
+                        // Safe calculation of source rectangle (CLAMP to image bounds)
+                        let rawSx = cellInfo.x - inflationW;
+                        let rawSy = cellInfo.y - inflationH;
+                        let rawSw = cellInfo.w + inflationW * 2;
+                        let rawSh = cellInfo.h + inflationH * 2;
+
+                        const sx = Math.max(0, rawSx);
+                        const sy = Math.max(0, rawSy);
+                        const right = Math.min(image.width, rawSx + rawSw);
+                        const bottom = Math.min(image.height, rawSy + rawSh);
+                        const sw = Math.max(0, right - sx);
+                        const sh = Math.max(0, bottom - sy);
+
+                        // Calculate aspect-fit scaling based on the SAFELY CLAMPED dimensions
+                        // NO PADDING: maximize the image size in the box
+                        const padding = 0;
+                        const drawAreaSize = outputSize - (padding * 2);
+
+                        const scale = Math.min(drawAreaSize / sw, drawAreaSize / sh);
+                        const drawW = sw * scale;
+                        const drawH = sh * scale;
+
+                        // Center the content
+                        const drawX = (outputSize - drawW) / 2;
+                        const drawY = (outputSize - drawH) / 2;
+
+                        // Draw the cell centered in square canvas
+                        if (sw > 0 && sh > 0) {
+                            ctx.drawImage(
+                                image,
+                                sx, sy, sw, sh,
+                                drawX, drawY, drawW, drawH
+                            );
+                        }
+
+                        // Export to file
+                        wx.canvasToTempFilePath({
+                            canvas: canvas,
+                            x: 0,
+                            y: 0,
+                            width: outputSize,
+                            height: outputSize,
+                            destWidth: outputSize,
+                            destHeight: outputSize,
+                            fileType: 'png',
+                            success: (saveRes) => {
+                                resolve(saveRes.tempFilePath);
+                            },
+                            fail: (err) => {
+                                reject(err);
                             }
                         });
-                    } else {
-                        wx.showToast({ title: '保存失败', icon: 'none' });
+                    });
+                };
+
+                // Process image: Fast 3x3 split without heavy pixel analysis
+                const processImage = async (localPath) => {
+                    try {
+                        await loadImage(localPath);
+
+                        const fullW = image.width;
+                        const fullH = image.height;
+                        console.log('[splitGridImage] Full image size:', fullW, 'x', fullH);
+
+                        // Direct 3x3 split based on full image (Trusting AI Prompt)
+                        // This is much faster and prevents cutting off edges (ears/tails)
+                        const cellW = Math.floor(fullW / 3);
+                        const cellH = Math.floor(fullH / 3);
+                        const cells = [];
+                        for (let row = 0; row < 3; row++) {
+                            for (let col = 0; col < 3; col++) {
+                                cells.push({
+                                    x: col * cellW,
+                                    y: row * cellH,
+                                    w: cellW,
+                                    h: cellH
+                                });
+                            }
+                        }
+
+                        // Determine output size
+                        const avgCellSize = Math.max(cellW, cellH);
+                        // Ensure good resolution but prevent HUGE canves that stall UI
+                        const outputSize = Math.max(300, Math.min(avgCellSize, 600));
+                        console.log('[splitGridImage] Output size:', outputSize);
+
+                        // Initial UI update
+                        const initialCropped = new Array(9).fill('');
+                        this.setData({
+                            croppedImages: initialCropped,
+                            isCropping: true,
+                            showCropPopup: true,
+                            selectedMap: {},
+                            selectedCount: 0
+                        });
+
+                        // Short wait for UI render
+                        await new Promise(r => setTimeout(r, 200));
+
+                        const croppedPaths = [...initialCropped];
+
+                        // Process each cell SEQUENTIALLY
+                        for (let i = 0; i < 9; i++) {
+                            try {
+                                const path = await exportCellVariable(i, cells[i], outputSize);
+                                croppedPaths[i] = path;
+
+                                // Update UI
+                                const updateKey = `croppedImages[${i}]`;
+                                this.setData({ [updateKey]: path });
+
+                                // Minimal yield to keep UI responsive but fast
+                                await new Promise(resolve => setTimeout(resolve, 10));
+
+                            } catch (err) {
+                                console.error(`[splitGridImage] Error processing cell ${i}:`, err);
+                            }
+                        }
+
+                        console.log('[splitGridImage] All 9 cells cropped successfully');
+
+                        // Select all by default
+                        const allSelected = {};
+                        for (let i = 0; i < 9; i++) allSelected[i] = true;
+
+                        this.setData({
+                            isCropping: false,
+                            selectedMap: allSelected,
+                            selectedCount: 9
+                        }, () => {
+                            wx.hideLoading();
+                        });
+
+                    } catch (err) {
+                        console.error('[splitGridImage] Process error:', err);
+                        wx.hideLoading();
+                        wx.showToast({
+                            title: '切图失败',
+                            icon: 'none'
+                        });
+                        this.setData({ isCropping: false });
                     }
+                };
+
+                // Check if remote URL or local file
+                if (imagePath.startsWith('http')) {
+                    wx.downloadFile({
+                        url: imagePath,
+                        success: (downloadRes) => {
+                            processImage(downloadRes.tempFilePath);
+                        },
+                        fail: (err) => {
+                            console.error('[splitGridImage] Download failed:', err);
+                            this.setData({ isCropping: false });
+                            wx.showToast({ title: '下载图片失败', icon: 'none' });
+                        }
+                    });
+                } else {
+                    processImage(imagePath);
                 }
             });
+    },
+
+    // Toggle selection of an image
+    onToggleImageSelection(e) {
+        const index = e.currentTarget.dataset.index;
+        const selectedMap = { ...this.data.selectedMap };
+
+        if (selectedMap[index]) {
+            delete selectedMap[index];
         } else {
-            // Remote URL
+            selectedMap[index] = true;
+        }
+
+        const selectedCount = Object.keys(selectedMap).length;
+        this.setData({ selectedMap, selectedCount });
+    },
+
+    // Save the full AI-generated grid image
+    onSaveFullImage() {
+        const currentStyle = this.data.currentStyle;
+        const cachedPath = this.data.styleCache[currentStyle];
+
+        if (!cachedPath) {
+            wx.showToast({ title: '没有找到图片', icon: 'none' });
+            return;
+        }
+
+        wx.showLoading({ title: '保存中...', mask: true });
+
+        // Handle remote URL vs local file
+        if (cachedPath.startsWith('http')) {
             wx.downloadFile({
-                url: filePath,
+                url: cachedPath,
                 success: (res) => {
                     wx.saveImageToPhotosAlbum({
                         filePath: res.tempFilePath,
-                        success: () => wx.showToast({ title: '保存成功', icon: 'success' }),
-                        fail: () => wx.showToast({ title: '保存失败', icon: 'none' })
+                        success: () => {
+                            wx.hideLoading();
+                            wx.showToast({ title: '大图已保存', icon: 'success' });
+                        },
+                        fail: (err) => {
+                            wx.hideLoading();
+                            this.handleSaveError(err);
+                        }
                     });
                 },
-                fail: (err) => {
-                    console.error('[saveImage] Download failed', err);
+                fail: () => {
+                    wx.hideLoading();
                     wx.showToast({ title: '下载失败', icon: 'none' });
                 }
             });
+        } else {
+            wx.saveImageToPhotosAlbum({
+                filePath: cachedPath,
+                success: () => {
+                    wx.hideLoading();
+                    wx.showToast({ title: '大图已保存', icon: 'success' });
+                },
+                fail: (err) => {
+                    wx.hideLoading();
+                    this.handleSaveError(err);
+                }
+            });
         }
+    },
+
+    // Handle save permission errors
+    handleSaveError(err) {
+        if (err.errMsg && err.errMsg.includes('auth deny')) {
+            wx.showModal({
+                title: '权限提示',
+                content: '保存图片需要访问相册，请在设置中开启权限',
+                success: (res) => {
+                    if (res.confirm) wx.openSetting();
+                }
+            });
+        } else {
+            wx.showToast({ title: '保存失败', icon: 'none' });
+        }
+    },
+
+    // Select all images
+    onSelectAll() {
+        this.setData({
+            selectedMap: { 0: true, 1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true },
+            selectedCount: 9
+        });
+    },
+
+    // Save selected images to album
+    onSaveSelectedImages() {
+        const { croppedImages, selectedMap } = this.data;
+        const selectedIndices = Object.keys(selectedMap).map(Number);
+
+        if (selectedIndices.length === 0) {
+            wx.showToast({ title: '请选择要保存的图片', icon: 'none' });
+            return;
+        }
+
+        let savedCount = 0;
+        let failedCount = 0;
+        const total = selectedIndices.length;
+
+        wx.showLoading({ title: `保存中 (0/${total})`, mask: true });
+
+        selectedIndices.forEach((index) => {
+            const filePath = croppedImages[index];
+            if (!filePath) {
+                failedCount++;
+                return;
+            }
+
+            wx.saveImageToPhotosAlbum({
+                filePath: filePath,
+                success: () => {
+                    savedCount++;
+                    wx.showLoading({ title: `保存中 (${savedCount}/${total})`, mask: true });
+
+                    if (savedCount + failedCount === total) {
+                        wx.hideLoading();
+                        this.onCloseCropPopup();
+                        if (failedCount > 0) {
+                            wx.showToast({ title: `成功${savedCount}张,失败${failedCount}张`, icon: 'none' });
+                        } else {
+                            wx.showToast({ title: `已保存${savedCount}张图片`, icon: 'success' });
+                        }
+                    }
+                },
+                fail: (err) => {
+                    console.error('[onSaveSelectedImages] Save failed for index', index, err);
+                    failedCount++;
+
+                    if (savedCount + failedCount === total) {
+                        wx.hideLoading();
+
+                        if (err.errMsg && err.errMsg.includes('auth deny')) {
+                            wx.showModal({
+                                title: '权限提示',
+                                content: '保存图片需要访问相册，请在设置中开启权限',
+                                success: (res) => {
+                                    if (res.confirm) wx.openSetting();
+                                }
+                            });
+                        } else if (failedCount === total) {
+                            wx.showToast({ title: '保存失败', icon: 'none' });
+                        } else {
+                            wx.showToast({ title: `成功${savedCount}张,失败${failedCount}张`, icon: 'none' });
+                        }
+                    }
+                }
+            });
+        });
     }
 });

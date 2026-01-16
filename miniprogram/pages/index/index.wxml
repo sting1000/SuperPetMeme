@@ -1,6 +1,8 @@
 <view class="container">
   <!-- Hidden Canvas for Image Processing -->
   <canvas type="2d" id="processCanvas" style="position:fixed; left:100%; width: 1024px; height: 1024px;"></canvas>
+  <!-- Hidden Canvas for Splitting Grid -->
+  <canvas type="2d" id="splitCanvas" style="position:fixed; left:100%; width: 512px; height: 512px;"></canvas>
 
   <!-- 🎨 Header with catchy slogan -->
   <view class="header">
@@ -86,9 +88,66 @@
         <text>🔄 重来</text>
       </button>
       <button class="btn save-btn" bindtap="saveImage">
-        <text>💾 保存</text>
+        <text>💾 挑选保存</text>
       </button>
     </view>
   </view>
+
+  <!-- Crop Popup using page-container -->
+  <page-container 
+    show="{{showCropPopup}}" 
+    round="{{true}}"
+    overlay="{{true}}"
+    position="bottom"
+    close-on-slide-down="{{true}}"
+    bind:beforeleave="onCloseCropPopup"
+  >
+    <view class="crop-popup">
+      <!-- Popup Header -->
+      <view class="crop-popup-header">
+        <text class="crop-popup-title">📦 挑选你的表情包</text>
+        <text class="crop-popup-subtitle">点击选择要保存的图片</text>
+      </view>
+
+      <!-- Loading State -->
+      <view class="crop-loading" wx:if="{{isCropping}}">
+        <text class="crop-loading-icon">✂️</text>
+        <text class="crop-loading-text">正在切图中...</text>
+      </view>
+
+      <!-- Grid of Cropped Images -->
+      <view class="crop-grid" wx:else>
+        <view 
+          class="crop-item {{selectedMap[index] ? 'selected' : ''}}" 
+          wx:for="{{croppedImages}}" 
+          wx:key="index"
+          data-index="{{index}}"
+          bindtap="onToggleImageSelection"
+        >
+          <image class="crop-image" src="{{item}}" mode="aspectFill"></image>
+          <view class="crop-check" wx:if="{{selectedMap[index]}}">
+            <text>✓</text>
+          </view>
+          <view class="crop-index">{{index + 1}}</view>
+        </view>
+      </view>
+
+      <!-- Popup Footer -->
+      <view class="crop-popup-footer" wx:if="{{!isCropping}}">
+        <view class="crop-selection-info">
+          <text class="selection-count">已选 {{selectedCount}} 张</text>
+          <text class="select-all-btn" bindtap="onSelectAll">全选</text>
+        </view>
+        <view class="crop-btn-group">
+          <button class="btn crop-full-btn" bindtap="onSaveFullImage">
+            <text>🖼️ 保存大图</text>
+          </button>
+          <button class="btn save-btn crop-save-btn" bindtap="onSaveSelectedImages" disabled="{{selectedCount === 0}}">
+            <text>💾 保存选中</text>
+          </button>
+        </view>
+      </view>
+    </view>
+  </page-container>
 
 </view>
